@@ -1,0 +1,44 @@
+using UnityEngine;
+using System.Collections;
+
+public class SignatureCheck : MonoBehaviour
+{
+    void Start()
+    {
+        if (!IsCorrect())
+        {
+            foreach (Camera camera in GameObject.FindObjectsOfType<Camera>())
+            {
+                Destroy(camera.gameObject);
+            }
+        }
+    }
+
+    public static bool IsCorrect()
+    {
+        #if UNITY_EDITOR
+            return true;
+        #elif UNITY_ANDROID
+            AndroidJavaClass player = new AndroidJavaClass("com.unity3d.player.UnityPlayer");
+            AndroidJavaObject activity = player.GetStatic<AndroidJavaObject>("currentActivity");
+            AndroidJavaObject packageManager = activity.Call<AndroidJavaObject>("getPackageManager");
+
+            string packageName = activity.Call<string>("getPackageName");
+
+            int GET_SIGNATURES = packageManager.GetStatic<int>("GET_SIGNATURES");
+            AndroidJavaObject packageInfo = packageManager.Call<AndroidJavaObject>("getPackageInfo", packageName, GET_SIGNATURES);
+            AndroidJavaObject[] signatures = packageInfo.Get<AndroidJavaObject[]>("signatures");
+
+            if (signatures != null && signatures.Length > 0)
+            {
+                int hashCode = signatures[0].Call<int>("hashCode");
+                Debug.Log(hashCode);
+                int expectedHashCode = -1835770393;
+                return hashCode.Equals(expectedHashCode);
+            }
+            return false;
+        #else
+            return true;
+        #endif
+    }
+}
